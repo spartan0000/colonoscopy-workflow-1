@@ -1,0 +1,127 @@
+name: json_summarize_input_text
+version: 2.2
+description: Generate a JSON summary of colonoscopy procedures and polyp pathology using a Pydantic model.
+
+pydantic_model: |
+  from typing import List, Literal
+  from pydantic import BaseModel, Field
+  from typing_extensions import Annotated
+
+  class Polyp(BaseModel):
+      location: Literal[
+          "cecum",
+          "ascending_colon",
+          "transverse_colon",
+          "descending_colon",
+          "sigmoid_colon",
+          "rectum"
+      ]
+      size: Annotated[int, Field(ge=0)]  # millimeters
+      type: Literal[
+          "adenoma",
+          "tubulovillous_or_villous_adenoma",
+          "sessile_serrated_polyp",
+          "hyperplastic_polyp",
+          "normal_colonic_mucosa"
+      ]
+      dysplasia: Literal["none", "low_grade", "high_grade"]
+      resection: Literal["complete", "piecemeal", "not_resected", "unknown"]
+      retrieval: Literal["complete", "incomplete", "unknown"]
+
+
+  class Biopsy(BaseModel):
+    location: Literal[
+        "cecum",
+        "ascending_colon",
+        "hepatic_flexure",
+        "transverse_colon",
+        "splenic_flexure",
+        "descending_colon",
+        "sigmoid_colon",
+        "rectum"
+    ]
+    indication: Literal[
+        "inflammation",
+        "ulceration",
+        "stricture",
+        "other"
+    ]
+    result: Literal[
+        "normal_colonic_mucosa",
+        "active_inflammation",
+        "chronic_inflammation",
+        "granulomas",
+        "dysplasia",
+        "malignancy"
+    ]
+  class BostonBowelPrepScore(BaseModel):
+      total: Annotated[int, Field(ge=0, le=9)]
+      right: Annotated[int, Field(ge=0, le=3)]
+      transverse: Annotated[int, Field(ge=0, le=3)]
+      left: Annotated[int, Field(ge=0, le=3)]
+
+  class Colonoscopy(BaseModel):
+      date: str  # YYYY-MM-DD
+      number_of_polyps: Annotated[int, Field(ge=0)]
+      cecum_reached: Literal["yes", "no"]
+      bostonBowelPrepScore: BostonBowelPrepScore
+      polyps: List[Polyp]
+      biopsies: List[Biopsy]
+
+  class ColonoscopySummary(BaseModel):
+      patient_name: str
+      patient_NHI: str
+      patient_age: Annotated[int, Field(ge=0)]
+      indication: Literal[
+          "sps",
+          "ibd",
+          "family_history_category_1",
+          "family_history_category_2",
+          "family_history_category_3",
+          "family_history_unknown",
+          "positive_faecal_immunochemical_test",
+          "anaemia",
+          "rectal_bleeding",
+          "change_in_bowel_habit",
+          "abdominal_pain",
+          "weight_loss",
+          "surveillance_for_previous_polyps",
+          "screening",
+          "other",
+          "unknown"
+      ]
+      colonoscopy: List[Colonoscopy]
+
+prompt:
+  role: system
+  content: |
+    Summarize input containing colonoscopy procedures and polyp pathology using the Pydantic model defined above. Extract:
+
+    Patient info:
+      - patient_name
+      - patient_NHI
+      - patient_age (year only)
+
+    Indication mapping:
+      - sps → serrated polyposis syndrome
+      - ibd → Crohn's disease or ulcerative colitis
+      - family_history_category_1 / 2 / 3 → family history with category
+      - family_history_unknown → family history unspecified
+      - Other: positive_faecal_immunochemical_test, anaemia, rectal_bleeding, change_in_bowel_habit, abdominal_pain, weight_loss, surveillance_for_previous_polyps, screening, other, unknown
+
+    Colonoscopy details:
+      - date: YYYY-MM-DD
+      - number_of_polyps
+      - cecum_reached: yes/no
+      - bostonBowelPrepScore: total 0-9, right 0-3, transverse 0-3, left 0-3
+      - polyps: location, size (mm), type, dysplasia, resection, retrieval
+
+    Output:
+      - Produce JSON parsable according to the Pydantic model
+      - Include all polyps even if some data is missing
+
+  rules:
+    - Do not make any clinical diagnoses or suggestions
+    - Ensure JSON is fully valid
+metadata:
+  updated: 2026-03-01
