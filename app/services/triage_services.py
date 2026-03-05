@@ -15,7 +15,7 @@ import random
 from datetime import datetime
 
 from app.clients.llm_clients import chat_client, hnz_client
-from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary
+from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary, UserInput
 
 load_dotenv()
 
@@ -46,17 +46,7 @@ def load_prompt(prompt_file:str) -> str:
 
 
 async def format_query_json(user_query: str) -> dict: 
-    PROMPT_FILE = PROMPT_PATH/'extract_json.yaml'
-    with open(PROMPT_FILE, 'r', encoding = 'utf-8') as f:
-        try:
-            config = yaml.safe_load(f)
-        except yaml.YAMLError as e:
-            raise Exception(f'Error loading YAML prompt file: {e}')
-        system_prompt = f"{config['prompt']['content']}"
-        if 'rules' in config:
-            rules_text = '\nRules:\n' + '\n'.join(f'- {rule}' for rule in config['rules'])
-            system_prompt = f'{system_prompt}\n{rules_text}'
-        
+    system_prompt = load_prompt('extract_json.yaml')
         
 
     user_prompt = f'Please format this medical text into structured JSON output - {user_query}'
@@ -132,126 +122,170 @@ rules_dict = {
     'rule_24': 'No polyps but biopsies taken, needs human review'
 }
 
+#input is the colonoscopy entry from the JSON output from the LLM
+#helper function to get polyp data from the JSON output before going into the rules engine
+
+def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from LLM and normalizes it so that the triage function doesn't have to pull values
+    stats = {
+        'n_adenoma': 0,
+        'max_adenoma': 0,
+        'hgd_adenoma': False,
+        'n_ssl': 0,
+        'max_ssl': 0,
+        'dysplastic_ssl': False,
+        'n_hyperplastic': 0,
+        'max_hyperplastic': 0,
+        'biopsies_taken': bool(colonoscopy_entry.get('biopsies')),
+        'tva': False,
+        'incomplete_resection': True,
+        'incomplete_retrieval': True,
+        
+
+    }
+    
+    for polyp in colonoscopy_entry.get('polyps', []):
+        ptype = polyp.get('type')
+        size = polyp.get('size', 0)
+        dysplasia = polyp.get('dysplasia')
+        if polyp.get('resection') == 'complete':
+            stats['incomplete_resection'] = False #default value is True (incomplete resection) set above
+        if polyp.get('retrieval') == 'complete':
+            stats['incomplete_retrieval'] = False #default value is True (incomplete retrieval) set above
 
 
 
+        if ptype == 'adenoma':
+            stats['n_adenoma'] += 1
+            stats['max_adenoma'] = max(stats['max_adenoma'], size)
+            if dysplasia == 'high_grade':
+                stats['hgd_adenoma'] = True
+        elif ptype == 'sessile_serrated_polyp':
+            stats['n_ssl'] += 1
+            stats['max_ssl'] = max(stats['max_ssl'], size)
+            if dysplasia in ['low_grade', 'high_grade']:
+                stats['dysplastic_ssl'] = True
+        elif ptype == 'hyperplastic_polyp':
+            stats['n_hyperplastic'] += 1
+            stats['max_hyperplastic'] = max(stats['max_hyperplastic'], size)
+        elif ptype == 'tubulovillous_or_villous_adenoma':
+            stats['tva'] = True
+        return stats
+
+def normalize_data(data: dict) -> dict: #normalize the data in the JSON output to make it easier to work with in the triage function
+    colonoscopy_entry = data.get('colonoscopy', [{}])[0]
+    stats = extract_polyp_data(colonoscopy_entry)
+
+    normalized_data = {
+        'patient_age': colonoscopy_entry.get('patient_age', 0),
+        'indication': colonoscopy_entry.get('indication', ''),
+        'bbps': colonoscopy_entry.get('bostonBowelPrepScore', 0),
+        'cecum_reached': colonoscopy_entry.get('cecum_reached', 'no'),
+        'total_polyps': colonoscopy_entry.get('number_of_polyps', 0),
+        **stats
+    }
+    return normalized_data
+ 
 def triage(data: dict):
-    n_adenoma = 0
-    max_adenoma = 0
-    hgd_adenoma = False
-    n_ssl = 0
-    max_ssl = 0
-    dysplastic_ssl = False
-    n_hyperplastic = 0
-    max_hyperplastic = 0
-    biopsies_taken = False
+    # colonoscopy_entry = data.get('colonoscopy', [{}])[0]
+    # stats = extract_polyp_data(colonoscopy_entry)
+
+    # n_adenoma = stats['n_adenoma']
+    # max_adenoma = stats['max_adenoma']
+    # hgd_adenoma = stats['hgd_adenoma']
+    # n_ssl = stats['n_ssl']
+    # max_ssl = stats['max_ssl']
+    # dysplastic_ssl = stats['dysplastic_ssl']
+    # n_hyperplastic = stats['n_hyperplastic']
+    # max_hyperplastic = stats['max_hyperplastic']
+    # biopsies_taken = stats['biopsies_taken']
     
-    tva = False
-    incomplete_resection = False
-    incomplete_retrieval = False
+    # tva = stats['tva']
+    # incomplete_resection = stats['incomplete_resection']
+    # incomplete_retrieval = stats['incomplete_retrieval']
+
+    # bbps = colonoscopy_entry.get('bostonBowelPrepScore', None)
+    # cecum = colonoscopy_entry.get('cecum_reached', None)
+    # total_polyps = colonoscopy_entry.get('number_of_polyps', 0)
     
-    follow_up = None
-    patient_age = data['patient_age']
-    indication = data.get('indication', '')
-    total_polyps = data['colonoscopy'][0]['number_of_polyps']
-    cecum = data['colonoscopy'][0]['cecum_reached']
-    bbps = data['colonoscopy'][0]['bostonBowelPrepScore']
-    if data['colonoscopy'][0]['biopsies']:
-        biopsies_taken = True
-    if data['colonoscopy'][0]['polyps']:
-        polyps = data['colonoscopy'][0]['polyps']
-        for polyp in polyps:
-            if polyp['type'] == 'adenoma':
-                n_adenoma += 1
-                max_adenoma = max(max_adenoma, polyp['size'])
-                if polyp['dysplasia'] == 'high_grade':
-                    hgd_adenoma = True
-            elif polyp['type'] == 'sessile_serrated_polyp':
-                n_ssl += 1
-                max_ssl = max(max_ssl, polyp['size'])
-                if polyp['dysplasia'] in ['low_grade', 'high_grade']:
-                    dysplastic_ssl = True
-            elif polyp['type'] == 'hyperplastic_polyp':
-                n_hyperplastic += 1
-                max_hyperplastic = max(max_hyperplastic, polyp['size'])
-            elif polyp['type'] == 'tubulovillous_or_villous_adenoma':
-                tva = True        
-            if polyp['resection'] != 'complete':
-                incomplete_resection = True
-            if polyp['retrieval'] != 'complete':
-                incomplete_retrieval = True
+    # follow_up = None
+    # patient_age = colonoscopy_entry.get('patient_age', 0)
+    # indication = colonoscopy_entry.get('indication', '')
+
+
+
+    
 
     #need human review - these all have a return statement so that no other criteria are triggered further down the line
     #for now, have follow up value of 0 represent needing human review
-    if cecum == 'no':
+    if data['cecum_reached'] == 'no':
         return {'follow_up': 0, 'rule': 'rule_1', 'reason': 'Cecum not reached'}
-    elif bbps['total'] < 6 or bbps['right'] < 2 or bbps['transverse'] < 2 or bbps['left'] < 2:
+    elif data['bbps']['total'] < 6 or data['bbps']['right'] < 2 or data['bbps']['transverse'] < 2 or data['bbps']['left'] < 2:
         return {'follow_up': 0, 'rule': 'rule_2', 'reason':'Inadequate prep'}
-    elif indication == 'sps': 
+    elif data['indication'] == 'sps': 
         return {'follow_up': 0, 'rule': 'rule_3', 'reason': 'Serrated polyposis syndrome'}
     #this seems like something a human should look at
-    elif n_adenoma >= 10:
+    elif data['n_adenoma'] >= 10:
         return {'follow_up': 0, 'rule': 'rule_4', 'reason': 'Greater than 10 adenomatous polyps'}
     #incomplete resection or retrieval
-    elif incomplete_resection == True or incomplete_retrieval == True:
+    elif data['incomplete_resection'] == True or data['incomplete_retrieval'] == True:
         return {'follow_up': 0, 'rule': 'rule_21', 'reason': 'Incomplete/piecemeal resection or incomplete retrieval'}
-    elif indication == 'ibd':
+    elif data['indication'] == 'ibd':
         return {'follow_up': 0, 'rule': 'rule_22', 'reason': 'IBD'}
     
     #biopsies taken - needs human review to determine why and what follow up is needed since biopsies alone aren't in the surveillance guidelines
 
-    elif biopsies_taken == True:
+    elif data['biopsies_taken'] == True:
         return {'follow_up': 0, 'rule': 'rule_24', 'reason': 'Biopsies taken, needs human review to determine reason and follow up'}
  
     #3 years
     ###These are high risk polyps - triaging rules vary somewhat for these regarding the age out criteria
-    elif max_ssl >=10:
+    elif data['max_ssl'] >=10:
         return {'follow_up': 3, 'rule': 'rule_5', 'reason': 'SSL >= 10mm'}
     
-    elif dysplastic_ssl == True:
+    elif data['dysplastic_ssl'] == True:
         return {'follow_up': 3, 'rule': 'rule_6', 'reason': 'SSL with dysplasia'}
     
-    elif max_adenoma >= 10:
+    elif data['max_adenoma'] >= 10:
         return {'follow_up': 3, 'rule': 'rule_7', 'reason': 'Adenoma >= 10mm'}
-    elif tva == True:
+    elif data['tva'] == True:
         return {'follow_up': 3, 'rule': 'rule_8', 'reason': 'Tubulovillous or villous adenoma'}
-    elif hgd_adenoma == True:
+    elif data['hgd_adenoma'] == True:
         return {'follow_up': 3, 'rule': 'rule_9', 'reason': 'Adenoma with HGD'}
     
     ###These are other indications for 3 year follow up
-    elif n_adenoma == 0 and n_ssl >= 5 and max_ssl < 10:
+    elif data['n_adenoma'] == 0 and data['n_ssl'] >= 5 and data['max_ssl'] < 10:
         return {'follow_up': 3, 'rule': 'rule_10', 'reason': '5 or more SSL all less than 10mm, no other polyps, no high risk features'}
-    elif n_ssl == 0 and 5 <= n_adenoma <= 9 and max_adenoma < 10 and hgd_adenoma == False:
+    elif data['n_ssl'] == 0 and 5 <= data['n_adenoma'] <= 9 and data['max_adenoma'] < 10 and data['hgd_adenoma'] == False:
         return {'follow_up': 3, 'rule': 'rule_11', 'reason': '5-9 adenomas with no high risk features and no SSL'}
-    elif n_ssl > 0 and n_adenoma > 0 and 5 <= total_polyps <= 9:
+    elif data['n_ssl'] > 0 and data['n_adenoma'] > 0 and 5 <= data['total_polyps'] <= 9:
         return {'follow_up': 3, 'rule': 'rule_12', 'reason': '5-9 combined adenomas and SSL'}
-    elif max_hyperplastic >= 10:
+    elif data['max_hyperplastic'] >= 10:
         return {'follow_up': 3, 'rule': 'rule_13', 'reason': 'Hyperplastic polyp >= 10mm'}
     
 
 
     #5 years
-    elif n_ssl == 0 and 3 <= n_adenoma <= 4 and max_adenoma < 10 and hgd_adenoma == False:
+    elif data['n_ssl'] == 0 and 3 <= data['n_adenoma'] <= 4 and data['max_adenoma'] < 10 and data['hgd_adenoma'] == False:
         return {'follow_up': 5, 'rule': 'rule_14', 'reason': '3-4 adenomas, no SSL, no high risk features'}
     
-    elif 1 <= n_ssl <= 4 and max_ssl < 10 and n_adenoma == 0:
+    elif 1 <= data['n_ssl'] <= 4 and data['max_ssl'] < 10 and data['n_adenoma'] == 0:
         return {'follow_up': 5, 'rule': 'rule_15', 'reason': '1-4 SSL < 10mm no dysplasia no other polyps'}
     
-    elif n_ssl > 0 and total_polyps <= 4 and max_ssl < 10 and max_adenoma < 10:
+    elif data['n_ssl'] > 0 and data['total_polyps'] <= 4 and data['max_ssl'] < 10 and data['max_adenoma'] < 10:
         return {'follow_up': 5, 'rule': 'rule_16', 'reason': 'Adenoma and SSL present, less than 5 total polyps, no high risk features'}
     
 
     #10 years
 
-    elif n_ssl == 0 and 0 < n_adenoma < 3 and max_adenoma < 10 and hgd_adenoma == False:
+    elif data['n_ssl'] == 0 and 0 < data['n_adenoma'] < 3 and data['max_adenoma'] < 10 and data['hgd_adenoma'] == False:
         return {'follow_up': 10, 'rule': 'rule_17', 'reason': '1-2 adenomas less than 10mm no hgd'}
-    elif n_ssl == 0 and n_adenoma == 0: #no polyps - biopsies taken is covered by rule earlier in the function so this only gets triggered if no biopsies and also no polyps
+    elif data['n_ssl'] == 0 and data['n_adenoma'] == 0: #no polyps - biopsies taken is covered by rule earlier in the function so this only gets triggered if no biopsies and also no polyps
         return {'follow_up': 10, 'rule': 'rule_18', 'reason': 'No polyps'}
     
     ###Add discharge criteria here?
 
     #if no polyps and family history category 1 or 2
-    if not data['colonoscopy'][0]['polyps'] and indication in ['family_history_category_1', 'family_history_category_2']:
+    if not data['polyps'] and data['indication'] in ['family_history_category_1', 'family_history_category_2']:
         return {'follow_up': 20, 'rule': 'rule_23', 'reason': 'Discharged due to no polyps and family history category 1 or 2'}
     
 
@@ -260,7 +294,7 @@ def triage(data: dict):
     else:
         return {'follow_up': 0, 'rule': 'rule_19', 'reason': 'No criteria met, needs human review'}
 
-def age_out(data: dict, outcome: dict):
+def age_out(data: dict, outcome: dict): #takes the original input to the triage function as well as the output and checks if the patient would age out of screening based on the follow up recommendation and their current age
     #see if the patient will age out
     patient_age = data['patient_age']
     follow_up = outcome['follow_up']
@@ -280,6 +314,14 @@ def triage_with_age_out(data, outcome):
     return age_out(data, outcome)
 
 
+async def final_triage(data: UserInput):
+
+    report = data.user_input
+    json_data = await format_query_json(report)
+    normalized_data = normalize_data(json_data)
+    recommendation = triage(normalized_data)
+    final = triage_with_age_out(normalized_data, recommendation)
+    return final
 
 
 
