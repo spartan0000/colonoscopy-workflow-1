@@ -88,3 +88,6 @@ class ColonoscopySummary(BaseModel):
         "unknown"
     ]
     colonoscopy: List[Colonoscopy]
+
+class UserInput(BaseModel):
+    user_input: str
