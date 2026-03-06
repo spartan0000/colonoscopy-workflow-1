@@ -55,7 +55,7 @@ def test_normalized_data_as_input_and_large_adenoma():
                 "type": "adenoma",
                 "size": 15,
                 "dysplasia": "high_grade",
-                "resection": "complete",
+                "resection": "complete", 
                 "retrieval": "complete"
             }],
             "bostonBowelPrepScore": {
@@ -273,7 +273,7 @@ def test_large_ssl():
 
 
 def test_ssl_with_dysplasia():
-    input = input = {
+    input = {
         
         'cecum_reached': 'yes',
         'bbps': {
@@ -297,3 +297,29 @@ def test_ssl_with_dysplasia():
     assert result['rule'] == 'rule_6'
     assert result['reason'] == 'SSL with dysplasia'
 
+def test_tva():
+    input = {
+        
+        'cecum_reached': 'yes',
+        'bbps': {
+            'total': 9,
+            'right': 3,
+            'transverse': 3,
+            'left': 3,
+
+        },
+        'indication': '',
+        'biopsies_taken': False,
+        'n_adenoma': 1,
+        'max_adenoma': 5,
+        'n_ssl': 0,
+        'max_ssl': 0,
+        'dysplastic_ssl': False,
+        'incomplete_resection': False,
+        'incomplete_retrieval': False,
+        'tva': True
+    }
+    result = triage(input)
+    assert result['follow_up'] == 3
+    assert result['rule'] == 'rule_8'
+    assert result['reason'] == 'Tubulovillous or villous adenoma'

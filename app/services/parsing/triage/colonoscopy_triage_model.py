@@ -89,5 +89,5 @@ class ColonoscopySummary(BaseModel):
     ]
     colonoscopy: List[Colonoscopy]
 
-class UserInput(BaseModel):
-    user_input: str
+class TriageRequest(BaseModel):
+    report_text: str

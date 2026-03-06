@@ -1,13 +1,14 @@
 from fastapi import APIRouter
 from app.services.triage_services import final_triage
-from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary, UserInput
+from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary, TriageRequest
 
 
-router = APIRouter(prefix="/triage", tags=["triage"])
+router = APIRouter(tags=["triage"])
 
 
-@router.post("/")
-async def triage(request: UserInput):
+@router.post("/triage")
+async def triage(request: TriageRequest):
     #load prompt
-    result = await final_triage(request)
+    report = request.report_text
+    result = await final_triage(report)
     return result

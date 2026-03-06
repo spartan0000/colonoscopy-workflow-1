@@ -15,7 +15,7 @@ import random
 from datetime import datetime
 
 from app.clients.llm_clients import chat_client, hnz_client
-from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary, UserInput
+from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary
 
 load_dotenv()
 
@@ -309,14 +309,13 @@ def age_out(data: dict, outcome: dict): #takes the original input to the triage 
 
 
 
-def triage_with_age_out(data, outcome):
+def triage_with_age_out(data, outcome):   
     outcome = triage(data)
     return age_out(data, outcome)
 
 
-async def final_triage(data: UserInput):
-
-    report = data.user_input
+async def final_triage(report):
+    
     json_data = await format_query_json(report)
     normalized_data = normalize_data(json_data)
     recommendation = triage(normalized_data)
