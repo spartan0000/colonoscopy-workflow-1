@@ -1,14 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.db.session import get_db
 from app.services import triage_services
 from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary, TriageRequest
+
+from sqlalchemy.orm import Session
+
 
 
 router = APIRouter(tags=["triage"])
 
 
 @router.post("/triage")
-async def triage_endpoint(request: TriageRequest):
+async def triage_endpoint(request: TriageRequest, db: Session = Depends(get_db)):
 
     # if not request.report_text or request.report_text.strip():
     #     raise HTTPException(
