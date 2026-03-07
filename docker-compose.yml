@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: colonoscopy_workflow_postgres
+    environment:
+      POSTGRES_USER: practice_user
+      POSTGRES_PASSWORD: practice_password
+      POSTGRES_DB: practice_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
