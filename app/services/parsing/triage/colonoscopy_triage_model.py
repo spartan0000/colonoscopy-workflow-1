@@ -90,4 +90,4 @@ class ColonoscopySummary(BaseModel):
     colonoscopy: List[Colonoscopy]
 
 class TriageRequest(BaseModel):
-    report_text: str
+    report_text: str = Field(..., min_length=1)
