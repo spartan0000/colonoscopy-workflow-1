@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.db.session import get_db
 from app.services import triage_services
-from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary, TriageRequest
+from app.services.triage.colonoscopy_triage_model import ColonoscopySummary, TriageRequest
 
 from sqlalchemy.orm import Session
 
