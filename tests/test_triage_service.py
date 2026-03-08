@@ -323,3 +323,32 @@ def test_tva():
     assert result['follow_up'] == 3
     assert result['rule'] == 'rule_8'
     assert result['reason'] == 'Tubulovillous or villous adenoma'
+
+def test_hgd_adenoma():
+    input = {
+        
+        'cecum_reached': 'yes',
+        'bbps': {
+            'total': 9,
+            'right': 3,
+            'transverse': 3,
+            'left': 3,
+
+        },
+        'indication': '',
+        'biopsies_taken': False,
+        'n_adenoma': 1,
+        'max_adenoma': 5,
+        'hgd_adenoma': True,
+        'n_ssl': 0,
+        'max_ssl': 0,
+        'dysplastic_ssl': False,
+        'incomplete_resection': False,
+        'incomplete_retrieval': False,
+        'tva': False
+    }
+    result = triage(input)
+    assert result['follow_up'] == 3
+    assert result['rule'] == 'rule_9'
+    assert result['reason'] == 'Adenoma with HGD'
+

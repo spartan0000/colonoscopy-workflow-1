@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from app.db.session import Base, get_db
+from app.db.session import get_db, Base
+from app.db.models.case import SampleTestCase
 
 from app.main import app
 from fastapi.testclient import TestClient
@@ -12,9 +13,13 @@ import os
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+
 
 engine = create_engine(DATABASE_URL)
-TestingSessionLocal = sessionmaker(bind=engine)
+
+test_engine = create_engine(TEST_DATABASE_URL)
+TestingSessionLocal = sessionmaker(bind=test_engine)
 
 @pytest.fixture(scope="session")
 def db_session():
@@ -48,3 +53,12 @@ def client_no_db():
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_db():
+    """create the test database schema before tests run, and drop it after all tests are done"""
+    #create test database schema
+    Base.metadata.create_all(bind=test_engine)
+    yield
+    #drop test database schema
+    Base.metadata.drop_all(bind=test_engine)    

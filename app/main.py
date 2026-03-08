@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.routes.triage_route import router as triage_router
+from app.api.triage_route import router as triage_router
 
 app = FastAPI()
 

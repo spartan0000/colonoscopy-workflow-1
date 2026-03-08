@@ -15,7 +15,7 @@ import random
 from datetime import datetime
 
 from app.clients.llm_clients import chat_client, hnz_client
-from app.services.parsing.triage.colonoscopy_triage_model import ColonoscopySummary
+from app.services.triage.colonoscopy_triage_model import ColonoscopySummary
 
 load_dotenv()
 
@@ -172,7 +172,10 @@ def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from 
         return stats
 
 def normalize_data(data: dict) -> dict: #normalize the data in the JSON output to make it easier to work with in the triage function
-    colonoscopy_entry = data.get('colonoscopy', [{}])[0]
+    colonoscopy_list = data.get('colonoscopy')
+    if not colonoscopy_list:
+        colonoscopy_list = [{}]
+    colonoscopy_entry = colonoscopy_list[0]
     stats = extract_polyp_data(colonoscopy_entry)
 
     normalized_data = {
