@@ -32,7 +32,7 @@ def test_missing_text(client_no_db):
     response = client_no_db.post("/triage", json={'report_text': ''}) #report text is empty
     assert response.status_code == 422 #unprocessable entry due to empty string validation error
 
-def test_triage_response(client_no_db):
+def test_triage_response(client):
     with patch('app.services.triage_services.format_query_json', new_callable=AsyncMock) as mock_format_query_json,\
         patch('app.services.triage_services.normalize_data') as mock_normalize_data,\
         patch('app.services.triage_services.triage') as mock_triage,\
@@ -46,7 +46,7 @@ def test_triage_response(client_no_db):
         
         input = {"report_text": "patient had a colonoscopy"}
 
-        response = client_no_db.post("/triage", json=input)
+        response = client.post("/triage", json=input)
         print(response.status_code)
         print(response.json())
         assert response.status_code == 200

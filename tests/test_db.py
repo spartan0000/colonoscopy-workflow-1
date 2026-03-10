@@ -1,11 +1,14 @@
 import pytest
-from tests.conftest import TestingSessionLocal
-from sqlalchemy import text
+from tests.conftest import TestingSessionLocal, test_engine
+from sqlalchemy import text, inspect
 from unittest.mock import patch, AsyncMock
 from app.db.models.case import SampleTestCase
 
+
 import app
 
+inspector = inspect(test_engine)
+print(f'TABLES: {inspector.get_table_names()}')
 
 def test_db_connection():
     db = TestingSessionLocal()
@@ -20,6 +23,8 @@ def test_db_insert(db_session):
     case = SampleTestCase(report_text="test report")
     db_session.add(case)
     db_session.commit()
+    print(inspector.get_table_names())
+
     assert db_session.query(SampleTestCase).count() == 1
 
 def test_triage_with_db_insert(client, db_session):

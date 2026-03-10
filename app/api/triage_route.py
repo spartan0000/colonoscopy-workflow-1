@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.db.session import get_db
 from app.services import triage_services
 from app.services.triage.colonoscopy_triage_model import ColonoscopySummary, TriageRequest
+from app.db.models.case import SampleTestCase
 
 from sqlalchemy.orm import Session
 
@@ -24,6 +25,11 @@ async def triage_endpoint(request: TriageRequest, db: Session = Depends(get_db))
     normalized_data = triage_services.normalize_data(json_data)
     preliminary_triage = triage_services.triage(normalized_data)
     final_triage = triage_services.triage_with_age_out(normalized_data, preliminary_triage)
+
+    case = SampleTestCase(report_text=report, recommendation=final_triage)
+    db.add(case)
+    db.commit()
+    db.refresh(case)
 
     return final_triage
 

@@ -6,9 +6,9 @@ class SampleTestCase(Base):
     __tablename__ = "test_cases"
 
     id: Mapped[int] = Column(Integer, primary_key=True)
-    report_text: Mapped[str] = Column(Text, nullable=False)
-    parsed_output: Mapped[dict] = Column(JSON, nullable=False)
-    recommendation: Mapped[dict] = Column(JSON, nullable=False)
-    created_at: Mapped[DateTime] = Column(DateTime, server_default=func.now(), nullable=False)
+    report_text: Mapped[str] = Column(Text)
+    parsed_output: Mapped[dict] = Column(JSON)
+    recommendation: Mapped[dict] = Column(JSON)
+    created_at: Mapped[DateTime] = Column(DateTime, server_default=func.now())
 
     

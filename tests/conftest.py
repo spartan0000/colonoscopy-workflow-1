@@ -21,10 +21,10 @@ engine = create_engine(DATABASE_URL)
 test_engine = create_engine(TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(bind=test_engine)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def db_session():
     """create a new database session for testing, then rollback at the end"""
-    connection = engine.connect()
+    connection = test_engine.connect()
     transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
 
@@ -58,6 +58,7 @@ def client_no_db():
 def setup_test_db():
     """create the test database schema before tests run, and drop it after all tests are done"""
     #create test database schema
+    print(Base.metadata.tables.keys())
     Base.metadata.create_all(bind=test_engine)
     yield
     #drop test database schema
