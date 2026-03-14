@@ -14,23 +14,21 @@ router = APIRouter(tags=["triage"])
 @router.post("/triage")
 async def triage_endpoint(request: TriageRequest, db: Session = Depends(get_db)):
 
-    # if not request.report_text or request.report_text.strip():
+    # if not request.report_text or not request.report_text.strip():
     #     raise HTTPException(
     #         status_code=400,
     #         detail="Report text is required and cannot be empty."
     #     )
 
     report = request.report_text
-    json_data = await triage_services.format_query_json(report)
-    normalized_data = triage_services.normalize_data(json_data)
-    preliminary_triage = triage_services.triage(normalized_data)
-    final_triage = triage_services.triage_with_age_out(normalized_data, preliminary_triage)
+    
+    final_triage_result = await triage_services.final_triage(report)
 
-    case = SampleTestCase(report_text=report, recommendation=final_triage)
+    case = SampleTestCase(report_text=report, recommendation=final_triage_result)
     db.add(case)
     db.commit()
     db.refresh(case)
 
-    return final_triage
+    return final_triage_result
 
 
