@@ -33,17 +33,19 @@ def test_missing_text(client_no_db):
     assert response.status_code == 422 #unprocessable entry due to empty string validation error
 
 def test_triage_response(client):
-    with patch('app.services.triage_services.format_query_json', new_callable=AsyncMock) as mock_format_query_json,\
-        patch('app.services.triage_services.normalize_data') as mock_normalize_data,\
-        patch('app.services.triage_services.triage') as mock_triage,\
-        patch('app.services.triage_services.triage_with_age_out') as mock_age_out:
+    # with patch('app.services.triage_services.format_query_json', new_callable=AsyncMock) as mock_format_query_json,\
+    #     patch('app.services.triage_services.normalize_data') as mock_normalize_data,\
+    #     patch('app.services.triage_services.triage') as mock_triage,\
+    #     patch('app.services.triage_services.triage_with_age_out') as mock_age_out:
         
-        mock_format_query_json.return_value = {"formatted_data": "some formatted data"}
-        mock_normalize_data.return_value = {"normalized_data": "some normalized data"}
-        mock_triage.return_value = {"triage_result": "some triage result"}
-        mock_age_out.return_value = {"age_out": "some age out result"}
+    #     mock_format_query_json.return_value = {"formatted_data": "some formatted data"}
+    #     mock_normalize_data.return_value = {"normalized_data": "some normalized data"}
+    #     mock_triage.return_value = {"triage_result": "some triage result"}
+    #     mock_age_out.return_value = {"age_out": "some age out result"}
 
-        
+     with patch('app.services.triage_services.final_triage', new_callable=AsyncMock) as mock_final_triage:
+        mock_final_triage.return_value = ({"normalized_data": "some data",
+                                          "age_out":"some age out result"})   
         input = {"report_text": "patient had a colonoscopy"}
 
         response = client.post("/triage", json=input)

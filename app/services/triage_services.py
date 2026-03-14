@@ -11,6 +11,7 @@ import asyncio
 import requests
 
 import random
+from sqlalchemy.orm import Session
 
 from datetime import datetime
 
@@ -323,8 +324,13 @@ async def final_triage(report):
     normalized_data = normalize_data(json_data)
     recommendation = triage(normalized_data)
     final = triage_with_age_out(normalized_data, recommendation)
-    return final
+    return {'normalized_data': normalized_data, 
+            'final_triage': final
+    }
 
+
+
+    
 
 
 async def main():

@@ -352,3 +352,31 @@ def test_hgd_adenoma():
     assert result['rule'] == 'rule_9'
     assert result['reason'] == 'Adenoma with HGD'
 
+def test_5_or_more_ssl():
+    input = {
+        'cecum_reached': 'yes',
+        'bbps': {
+            'total': 9,
+            'right': 3,
+            'transverse': 3,
+            'left': 3,
+
+        },
+        'indication': '',
+        'biopsies_taken': False,
+        'n_adenoma': 0,
+        'max_adenoma': 0,
+        'hgd_adenoma': False,
+        'n_ssl': 6,
+        'max_ssl': 2,
+        'total_polyps': 7,
+        'dysplastic_ssl': False,
+        'incomplete_resection': False,
+        'incomplete_retrieval': False,
+        'tva': False
+    }
+
+    result = triage(input)
+    assert result['follow_up'] == 3
+    assert result['rule'] == 'rule_10'
+    assert result['reason'] == '5 or more SSL all less than 10mm, no other polyps, no high risk features'
