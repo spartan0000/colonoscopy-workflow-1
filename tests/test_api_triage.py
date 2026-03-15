@@ -2,20 +2,38 @@ from fastapi.testclient import TestClient
 from app.main import app
 import pytest
 from unittest.mock import AsyncMock, patch
+from app.db.models.case import SampleTriage
 
 
 
 
-##### Not a mocked test.  This hits the actual openai endpoint.  Use for integration testing only.
+##### Not mocked tests.  This hits the actual openai endpoint.  Use for integration testing only.
 @pytest.mark.integration
 def test_triage_endpoint(client_no_db): 
-    input = {'report_text':
+    payload = {'report_text':
              "Patient is a 60-year-old with a history of lower GI bleeding. During the colonoscopy, a 5mm adenoma was found in the ascending colon and was completely resected, but retrieval was incomplete. The Boston Bowel Prep Score was 7 (right: 2, transverse: 3, left: 2), and the cecum was reached. The indication for the colonoscopy was rectal bleeding."}
     
         
-    response = client_no_db.post("/triage", json=input)
+    response = client_no_db.post("/triage", json=payload)
     print(response.json())
     assert response.status_code == 200
+
+###uses sample test case - need to switch out to real schema later
+@pytest.mark.integration
+def test_full_pipeline(client, db_session):
+    payload = {'report_text': "Patient is a 60-year-old with a history of lower GI bleeding. During the colonoscopy, a 5mm adenoma was found in the ascending colon and was completely resected, but retrieval was incomplete. The Boston Bowel Prep Score was 7 (right: 2, transverse: 3, left: 2), and the cecum was reached. The indication for the colonoscopy was rectal bleeding."}
+    response = client.post("/triage", json=payload)
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert 'recommendation' in data
+
+    triage_row = db_session.query(SampleTriage).first()
+
+    assert triage_row.normalized_data is not None
+    assert triage_row.final_recommendation is not None 
 
 ##############################   
 
@@ -45,11 +63,11 @@ def test_triage_response(client):
 
      with patch('app.services.triage_services.final_triage', new_callable=AsyncMock) as mock_final_triage:
         mock_final_triage.return_value = ({"normalized_data": "some data",
-                                          "age_out":"some age out result"})   
+                                          "recommendation":"some age out result"})   
         input = {"report_text": "patient had a colonoscopy"}
 
         response = client.post("/triage", json=input)
         print(response.status_code)
         print(response.json())
         assert response.status_code == 200
-        assert response.json()['age_out'] == "some age out result"
+        assert response.json()['recommendation'] == "some age out result"

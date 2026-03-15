@@ -22,13 +22,9 @@ async def triage_endpoint(request: TriageRequest, db: Session = Depends(get_db))
 
     report = request.report_text
     
-    final_triage_result = await triage_services.final_triage(report)
+    final_triage_result = await triage_services.process_triage(report, db)
 
-    case = SampleTestCase(report_text=report, recommendation=final_triage_result)
-    db.add(case)
-    db.commit()
-    db.refresh(case)
-
+    
     return final_triage_result
 
 
