@@ -17,6 +17,7 @@ from datetime import datetime
 
 from app.clients.llm_clients import chat_client, hnz_client
 from app.services.triage.colonoscopy_triage_model import ColonoscopySummary
+from app.db.models.case import SamplePatient, SampleProcedure, SampleTriage
 
 load_dotenv()
 
@@ -325,14 +326,32 @@ async def final_triage(report):
     recommendation = triage(normalized_data)
     final = triage_with_age_out(normalized_data, recommendation)
     return {'normalized_data': normalized_data, 
-            'final_triage': final
+            'recommendation': final
     }
 
 
+def write_triage_record(db: Session, raw_report, normalized_data, recommendation):
+    with db.begin():
+        triage_row = SampleTriage(
+            raw_report = raw_report,
+            normalized_data = normalized_data,
+            final_recommendation = recommendation
+        )
 
-    
+        db.add(triage_row)
 
 
+async def process_triage(report: str, db: Session): #integrates the entire workflow from intake of report to writing to database
+    result = await final_triage(report)
+
+    write_triage_record(db = db,
+                        raw_report = report,
+                        normalized_data = result['normalized_data'],
+                        recommendation = result['recommendation'])
+
+    return result
+
+###for development
 async def main():
     with open(DATA_PATH / 'sample_patient_report_1.txt', 'r', encoding = 'utf-8') as f:
         report = f.read()

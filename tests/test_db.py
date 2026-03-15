@@ -10,6 +10,10 @@ import app
 inspector = inspect(test_engine)
 print(f'TABLES: {inspector.get_table_names()}')
 
+###need a test to test the histology matching to the correct patient - the join logic
+#@pytest.mark.integration
+#def test_histology_matching():
+
 def test_db_connection():
     db = TestingSessionLocal()
     try:
@@ -18,7 +22,7 @@ def test_db_connection():
     finally:
         db.close()
 
-def test_db_insert(db_session):
+def test_db_insert(db_session): #uses sample test case - need to switch schema out later
     
     case = SampleTestCase(report_text="test report")
     db_session.add(case)
@@ -27,7 +31,7 @@ def test_db_insert(db_session):
 
     assert db_session.query(SampleTestCase).count() == 1
 
-def test_triage_with_db_insert(client, db_session):
+def test_triage_with_db_insert(client, db_session): #uses sample test case - need to switch schema out later
     input_data = {
         
         'cecum_reached': 'yes',
@@ -50,29 +54,20 @@ def test_triage_with_db_insert(client, db_session):
         'incomplete_retrieval': False,
         'tva': False
     }
-    # with patch('app.services.triage_services.format_query_json', new_callable=AsyncMock) as mock_format_query_json,\
-    #     patch('app.services.triage_services.normalize_data') as mock_normalize_data,\
-    #     patch('app.services.triage_services.triage') as mock_triage,\
-    #     patch('app.services.triage_services.triage_with_age_out') as mock_age_out:
-        
-    #     mock_format_query_json.return_value = {}
-    #     mock_normalize_data.return_value = input_data
-    #     mock_triage.return_value = {"follow_up": "3 years"}
-    #     mock_age_out.return_value = {"follow_up": "3 years"}
-
+    
     with patch('app.services.triage_services.final_triage', new_callable=AsyncMock) as mock_final_triage:
         mock_final_triage.return_value = {"normalized_data":"some data",
-                                          'follow_up': '3 years'}    
+                                          'recommendation': '3 years'}    
         response = client.post("/triage", json={'report_text': 'some_value'})
         assert response.status_code == 200
 
         #check if the result was added to the db
 
-        from app.db.models.case import SampleTestCase
-        test_case = db_session.query(SampleTestCase).order_by(SampleTestCase.id.desc()).first()
+        from app.db.models.case import SampleTriage
+        test_case = db_session.query(SampleTriage).order_by(SampleTriage.triage_id.desc()).first()
         assert test_case is not None
         
-def test_triage_write_database(db_session): 
+def test_triage_write_database(db_session): #uses sample test case - need to switch schema out later
     patient = SamplePatient(name="test patient", nhi='abc1234')
     db_session.add(patient)
     db_session.commit()
