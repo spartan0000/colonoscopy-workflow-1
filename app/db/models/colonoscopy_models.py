@@ -27,6 +27,7 @@ class Patient(Base):
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
     dob: Mapped[Date] = mapped_column(Date, nullable=False)
+    
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     procedures: Mapped[List["Procedure"]] = relationship("Procedure", back_populates="patient")
@@ -40,10 +41,18 @@ class Procedure(Base):
     procedure_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     patient_id: Mapped[int] = mapped_column(Integer, ForeignKey("patients.patient_id"), nullable=False)
     procedure_date: Mapped[Date] = mapped_column(Date, nullable=False)
+    observed_age: Mapped[int] = mapped_column(Integer, nullable=False)
     endoscopist: Mapped[str] = mapped_column(String(100), nullable=False)
+    cecum_reached: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    bbps_total: Mapped[int] = mapped_column(Integer, nullable=False)
+    bbps_right: Mapped[int] = mapped_column(Integer, nullable=False)
+    bbps_transverse: Mapped[int] = mapped_column(Integer, nullable=False)
+    bbps_left: Mapped[int] = mapped_column(Integer, nullable=False)
+    indication: Mapped[str] = mapped_column(String(250))
+    withdrawal_time: Mapped[float] = mapped_column(Float, nullable=False)
     
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
+    
     patient: Mapped["Patient"] = relationship("Patient", back_populates="procedures")
     findings: Mapped[List["Finding"]] = relationship("Finding", back_populates="procedure", cascade="all, delete-orphan")
     #specimens: Mapped[List["Specimen"]] = relationship("Specimen", back_populates="procedure", cascade="all, delete-orphan")
@@ -57,7 +66,6 @@ class Finding(Base): #findings represent what's seen during the procedure.  Used
     finding_type: Mapped[str] = mapped_column(String(50), nullable=False) #for example, polyp, ulcer, inflammation, diverticulum etc.
     location: Mapped[str] = mapped_column(String(50), nullable=False)
     size_mm: Mapped[float] = mapped_column(Float)
-    cecum_reached: Mapped[bool] = mapped_column(Boolean, nullable=False)
     polyp: Mapped[bool] = mapped_column(Boolean) #is the finding a polyp or not
     biopsied: Mapped[bool] = mapped_column(Boolean)
     resection_method: Mapped[str] = mapped_column(String(50)) #cold snare, hot snare, lift, etc.
@@ -111,7 +119,7 @@ class Triage(Base):
     procedure_id: Mapped[int] = mapped_column(Integer, ForeignKey("procedures.procedure_id"), ondelete="CASCADE", nullable=False) # a procedure can have more than one triage decision if these change over time, so I left out the unique=True
     raw_histology_text: Mapped[str] = mapped_column(String, nullable=False)
     histology_json: Mapped[dict] = mapped_column(JSON)
-    triage_decision: Mapped[str] = mapped_column(String(500), nullable=False)
+    triage_decision: Mapped[dict] = mapped_column(JSON, nullable=False)
     triage_date_time: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     created_by: Mapped[str] = mapped_column(String(100), nullable=False)
 

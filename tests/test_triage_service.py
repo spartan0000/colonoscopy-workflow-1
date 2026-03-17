@@ -26,6 +26,8 @@ def test_normalize_data():
                 "left": 2 
              },
              "patient_age": 60,
+             "procedure_date": '2025-04-01',
+             "patient_dob" : '1929-04-03',
              "cecum_reached": 'yes',
              "biopsies_taken": False,
              "indication": "bleeding",
@@ -46,8 +48,11 @@ def test_normalize_data():
     assert normalized_data['cecum_reached'] == 'yes'
     assert normalized_data['patient_age'] == 60
     assert normalized_data['indication'] == 'bleeding'
+    assert normalized_data['patient_dob'].year == 1929
+    assert normalized_data['procedure_date'].year == 2025
 
-def test_normalized_data_as_input_and_large_adenoma():
+
+def test_json_normalized_data_and_triage():
     input = {
         
         "colonoscopy": [{
@@ -64,7 +69,9 @@ def test_normalized_data_as_input_and_large_adenoma():
                 "transverse": 3,
                 "left": 2 
              },
-             "patient_age": 60,
+             "patient_age": 0,
+             "patient_dob": "1955-09-01",
+             "procedure_date": "2026-03-17",
              "cecum_reached": 'yes',
              "biopsies_taken": False,
              "indication": "bleeding",

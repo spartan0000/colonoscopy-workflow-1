@@ -1,6 +1,7 @@
 from typing import List, Literal
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
+from datetime import date
 
 class Polyp(BaseModel):
     location: Literal[
@@ -58,7 +59,7 @@ class BostonBowelPrepScore(BaseModel):
     left: Annotated[int, Field(ge=0, le=3)]
 
 class Colonoscopy(BaseModel):
-    date: str  # YYYY-MM-DD format
+    procedure_date: date | None  # YYYY-MM-DD format
     number_of_polyps: Annotated[int, Field(ge=0)]
     cecum_reached: Literal["yes", "no"]
     bostonBowelPrepScore: BostonBowelPrepScore
@@ -69,6 +70,7 @@ class ColonoscopySummary(BaseModel):
     patient_name: str
     patient_NHI: str
     patient_age: Annotated[int, Field(ge=0)]
+    patient_dob: date | None
     indication: Literal[
         "sps",
         "ibd",

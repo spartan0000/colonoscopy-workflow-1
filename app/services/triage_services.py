@@ -13,7 +13,7 @@ import requests
 import random
 from sqlalchemy.orm import Session
 
-from datetime import datetime
+from datetime import datetime, date
 
 from app.clients.llm_clients import chat_client, hnz_client
 from app.services.triage.colonoscopy_triage_model import ColonoscopySummary
@@ -180,14 +180,26 @@ def normalize_data(data: dict) -> dict: #normalize the data in the JSON output t
     colonoscopy_entry = colonoscopy_list[0]
     stats = extract_polyp_data(colonoscopy_entry)
 
+    dob = colonoscopy_entry.get('patient_dob')
+    procedure_date = colonoscopy_entry.get('procedure_date')
+
+    if dob:
+        dob = datetime.strptime(dob, "%Y-%m-%d").date()
+    if procedure_date:
+        procedure_date = datetime.strptime(procedure_date, "%Y-%m-%d").date()
+
     normalized_data = {
         'patient_age': colonoscopy_entry.get('patient_age', 0),
+        'patient_dob': dob,
+        'procedure_date': procedure_date,
         'indication': colonoscopy_entry.get('indication', ''),
         'bbps': colonoscopy_entry.get('bostonBowelPrepScore', 0),
         'cecum_reached': colonoscopy_entry.get('cecum_reached', 'no'),
         'total_polyps': colonoscopy_entry.get('number_of_polyps', 0),
         **stats
     }
+
+    
     return normalized_data
  
 def triage(data: dict):
@@ -299,9 +311,31 @@ def triage(data: dict):
     else:
         return {'follow_up': 0, 'rule': 'rule_19', 'reason': 'No criteria met, needs human review'}
 
-def age_out(data: dict, outcome: dict): #takes the original input to the triage function as well as the output and checks if the patient would age out of screening based on the follow up recommendation and their current age
+def calculate_age(dob: date, procedure_date: date):
+    return procedure_date.year - dob.year - ((procedure_date.month, procedure_date.day) < (dob.month, dob.day))
+
+def resolve_age(dob, observed_age, procedure_date):
+
+    if dob:
+        computed_age = calculate_age(dob, procedure_date)
+
+        if observed_age and abs(observed_age - computed_age) > 1:
+            pass #can raise a flag that there's an error here
+
+        return computed_age
+    
+    return observed_age
+    
+
+
+def age_out(normalized_data: dict, outcome: dict): #takes the original input to the triage function as well as the output and checks if the patient would age out of screening based on the follow up recommendation and their current age
     #see if the patient will age out
-    patient_age = data['patient_age']
+    patient_age = resolve_age(
+        dob = normalized_data.get('patient_dob'),
+        observed_age = normalized_data.get('patient_age'),
+        procedure_date = normalized_data.get('procedure_date')
+
+    )
     follow_up = outcome['follow_up']
     rule = outcome['rule']
     if rule in ['rule_5', 'rule_6', 'rule_7', 'rule_8', 'rule_9'] and patient_age <= 75: #high risk polyps can rescope up to age 78
@@ -314,9 +348,9 @@ def age_out(data: dict, outcome: dict): #takes the original input to the triage 
 
 
 
-def triage_with_age_out(data, outcome):   
-    outcome = triage(data)
-    return age_out(data, outcome)
+def triage_with_age_out(normalized_data, outcome):   
+    outcome = triage(normalized_data)
+    return age_out(normalized_data, outcome)
 
 
 async def final_triage(report):

@@ -6,6 +6,7 @@ pydantic_model: |
   from typing import List, Literal
   from pydantic import BaseModel, Field
   from typing_extensions import Annotated
+  from datetime import date
 
   class Polyp(BaseModel):
       location: Literal[
@@ -71,7 +72,7 @@ pydantic_model: |
   class ColonoscopySummary(BaseModel):
       patient_name: str
       patient_NHI: str
-      patient_age: Annotated[int, Field(ge=0)]
+      patient_age: date
       indication: Literal[
           "sps",
           "ibd",
@@ -100,7 +101,8 @@ prompt:
     Patient info:
       - patient_name
       - patient_NHI
-      - patient_age (year only)
+      - patient_age (year only) if available
+      - patient_dob - date of birth in YYYY-MM-DD format if available
 
     Indication mapping:
       - sps → serrated polyposis syndrome
@@ -110,7 +112,7 @@ prompt:
       - Other: positive_faecal_immunochemical_test, anaemia, rectal_bleeding, change_in_bowel_habit, abdominal_pain, weight_loss, surveillance_for_previous_polyps, screening, other, unknown
 
     Colonoscopy details:
-      - date: YYYY-MM-DD
+      - procedure_date: YYYY-MM-DD
       - number_of_polyps
       - cecum_reached: yes/no
       - bostonBowelPrepScore: total 0-9, right 0-3, transverse 0-3, left 0-3
