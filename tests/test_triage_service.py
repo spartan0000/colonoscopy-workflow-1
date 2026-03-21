@@ -1,5 +1,7 @@
 import pytest
 
+from datetime import date
+
 from unittest.mock import AsyncMock, patch
 
 from app.services.triage_services import triage, age_out, normalize_data, triage_with_age_out
@@ -119,6 +121,47 @@ def test_age_out_with_normalized_data():
     final = triage_with_age_out(normalized_data, recommendation)
 
     assert final['reason'] == 'Patient aged out'
+
+def test_normalized_input_to_triage():
+    payload = {"bbps": {
+                "total": 7,
+                "right": 2,
+                "transverse": 3,
+                "left": 2 
+             },
+             "n_adenoma": 10,
+             "patient_age": 3,
+             "patient_dob": date(1990, 5, 4),
+             "procedure_date": date(2025,5,4),
+             "indication": '',
+             "total_polyps": 10,
+             "cecum_reached": 'yes',
+             "biopsies_taken": False,
+             "indication": "bleeding",
+            "polyps": [{
+                "type": "adenoma",
+                "size": 5,
+                "dysplasia": "low_grade",
+                "resection": "complete",
+                "retrieval": "complete"
+            },
+            {"type": "adenoma",
+             "size": 7,
+             "dysplasia": "low_grade",
+             "resection": "complete",
+             "retrieval": "complete"
+             }],
+             "incomplete_resection": False,
+             "incomplete_retrieval": False,
+             
+
+             }
+    recommendation = triage(payload)
+    final_recommendation = triage_with_age_out(payload, recommendation)
+    assert final_recommendation['follow_up'] == 0
+    assert final_recommendation['rule'] == 'rule_4'
+    assert final_recommendation['reason'] == 'Greater than 10 adenomatous polyps'
+
 
 ### Tests for rules that trigger human review ###
 def test_cecum_not_reached():

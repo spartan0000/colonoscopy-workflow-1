@@ -34,7 +34,7 @@ def test_full_pipeline(client, db_session):
 
     assert triage_row.normalized_data is not None
     assert triage_row.final_recommendation is not None 
-
+ 
 ##############################   
 
 

@@ -336,6 +336,7 @@ def age_out(normalized_data: dict, outcome: dict): #takes the original input to 
         procedure_date = normalized_data.get('procedure_date')
 
     )
+    
     follow_up = outcome['follow_up']
     rule = outcome['rule']
     if rule in ['rule_5', 'rule_6', 'rule_7', 'rule_8', 'rule_9'] and patient_age <= 75: #high risk polyps can rescope up to age 78
