@@ -144,10 +144,24 @@ def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from 
         
 
     }
+
+    if not isinstance(colonoscopy_entry,dict):
+        return stats
     
-    for polyp in colonoscopy_entry.get('polyps', []):
+    polyps = colonoscopy_entry.get(polyps, [])
+    if not isinstance(polyps, list):
+        return stats
+    
+
+    
+    
+    for polyp in polyps:
+        if not isinstance(polyp, dict):
+            continue
         ptype = polyp.get('type')
         size = polyp.get('size', 0)
+        if not isinstance(size, (int, float)):
+            size = 0
         dysplasia = polyp.get('dysplasia')
         if polyp.get('resection') == 'complete':
             stats['incomplete_resection'] = False #default value is True (incomplete resection) set above
@@ -171,7 +185,7 @@ def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from 
             stats['max_hyperplastic'] = max(stats['max_hyperplastic'], size)
         elif ptype == 'tubulovillous_or_villous_adenoma':
             stats['tva'] = True
-        return stats
+    return stats
 
 def normalize_data(data: dict) -> dict: #normalize the data in the JSON output to make it easier to work with in the triage function
     colonoscopy_list = data.get('colonoscopy')
@@ -336,7 +350,7 @@ def age_out(normalized_data: dict, outcome: dict): #takes the original input to 
         procedure_date = normalized_data.get('procedure_date')
 
     )
-    
+
     follow_up = outcome['follow_up']
     rule = outcome['rule']
     if rule in ['rule_5', 'rule_6', 'rule_7', 'rule_8', 'rule_9'] and patient_age <= 75: #high risk polyps can rescope up to age 78
@@ -365,7 +379,7 @@ async def final_triage(report):
     }
 
 
-def write_triage_record(db: Session, raw_report, normalized_data, recommendation):
+def write_triage_record(db: Session, raw_report, normalized_data, recommendation): #uses sample schema - need to switch out to real schema
     with db.begin():
         triage_row = SampleTriage(
             raw_report = raw_report,
