@@ -10,6 +10,12 @@ class Polyp(BaseModel):
     resection_complete: Optional[bool] = Field(description = "whether the polyp resection was complete")
     retrieved: Optional[bool] = Field(description = "whether the polyp was retrieved")
 
+class Finding(BaseModel):
+    finding_id: str = Field(description = "identifier for each finding")
+    description: Optional[str] = Field(description="text description of findings")
+    biopsy: Optional[bool] = Field(description="whether the finding was biopsied or not")
+
+
 class ColonoscopyReport(BaseModel):
     cecum_reached: Optional[bool] = Field(description="whether the cecum was reached or not")
 
@@ -18,3 +24,8 @@ class ColonoscopyReport(BaseModel):
     withdrawal_time: Optional[float] = Field(description="calculated withdrawal time given cecum reached time and procedure end time")
     #need to add other findings such as diveritcula, hemorrhoids, inflammation.
     polyps: List[Polyp]
+    findings: List[Finding]
+
+
+
+

@@ -11,6 +11,10 @@ import json
 from fastapi import UploadFile
 from io import BytesIO
 
+from sqlalchemy.orm import Session
+
+from app.services.transcribe.colonoscopy_transcription_model import ColonoscopyReport
+
 load_dotenv()
 
 from app.clients.llm_clients import transcribe_client, whisper_client, hnz_client, chat_client
@@ -85,6 +89,23 @@ async def extract_json(user_input: dict) -> dict:
 
     output = response.output_parsed.model_dump()
     return output
+
+def write_transcription_record(db: Session, output):
+    with db.begin():
+        transcription_row = (
+
+        )
+
+        db.add(transcription_row)
+
+        
+
+async def final_transcription(upload_file: UploadFile):
+    clean_data = get_transcription_timestamps(upload_file)
+    output = extract_json(clean_data)
+    return output
+
+
 
 #then into this function to generate a final report in PDF
 def convert_to_report(data: dict) -> str:
