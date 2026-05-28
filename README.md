@@ -1,6 +1,4 @@
-Copyright © 2025 Lone Star Surgical, LLC. All rights reserved.
 
-This software is proprietary and confidential. Unauthorized copying, modification, or distribution is prohibited.
 # Colonoscopy Workflow Automation
 
 A FastAPI-based system that eliminates repetitive manual work from colonoscopy reporting. It combines an LLM-powered transcription layer (in progress) with a deterministic, rules-based triage engine to automate two of the most time-consuming tasks in endoscopy: **data entry** and **post-procedure follow-up decisions**.
