@@ -350,6 +350,8 @@ Submit a free-text colonoscopy report for automated triage.
 }
 ```
 
+Note: `report_text` is a JSON string, so line breaks inside the report must be escaped as `\n` (clients using `JSON.stringify` or `requests.post(..., json=...)` handle this automatically).
+
 **Response**
 
 ```json

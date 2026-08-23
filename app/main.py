@@ -6,9 +6,9 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = [*],
-    allow_headers = [*],
-    allow_methods = [*],
+    allow_origins = ["*"],
+    allow_headers = ["*"],
+    allow_methods = ["*"],
 )
 
 app.include_router(triage_router) 

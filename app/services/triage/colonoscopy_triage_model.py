@@ -92,4 +92,10 @@ class ColonoscopySummary(BaseModel):
     colonoscopy: List[Colonoscopy]
 
 class TriageRequest(BaseModel):
-    report_text: str = Field(..., min_length=1)
+    report_text: str = Field(
+        ...,
+        min_length=1,
+        examples=[
+            "Patient is a 60-year-old with a history of lower GI bleeding. During the colonoscopy, a 5mm adenoma was found in the ascending colon and was completely resected, but retrieval was incomplete. The Boston Bowel Prep Score was 7 (right: 2, transverse: 3, left: 2), and the cecum was reached. The indication for the colonoscopy was rectal bleeding."
+        ],
+    )
