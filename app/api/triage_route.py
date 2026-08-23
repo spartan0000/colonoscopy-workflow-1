@@ -6,6 +6,8 @@ from app.db.models.case import SampleTestCase
 
 from sqlalchemy.orm import Session
 
+from pydantic import ValidationError
+
 
 
 router = APIRouter(tags=["triage"])
@@ -22,9 +24,16 @@ async def triage_endpoint(request: TriageRequest, db: Session = Depends(get_db))
 
     report = request.report_text
 
-    final_triage_result = await triage_services.process_triage(report, db)
+    try:
+
+        final_triage_result, triage_id = await triage_services.process_triage(report, db)
+    except ValidationError:
+        raise HTTPException(status_code=502, detail='Could not extract structured data from report text.')
 
     
-    return final_triage_result
+    return {
+        'final_result': final_triage_result,
+        'triage_id': triage_id,
+    }
 
 

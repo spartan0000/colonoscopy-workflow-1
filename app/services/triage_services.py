@@ -139,8 +139,8 @@ def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from 
         'max_hyperplastic': 0,
         'biopsies_taken': bool(colonoscopy_entry.get('biopsies')),
         'tva': False,
-        'incomplete_resection': True,
-        'incomplete_retrieval': True,
+        'incomplete_resection': False,
+        'incomplete_retrieval': False,
         
 
     }
@@ -148,7 +148,7 @@ def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from 
     if not isinstance(colonoscopy_entry,dict):
         return stats
     
-    polyps = colonoscopy_entry.get(polyps, [])
+    polyps = colonoscopy_entry.get('polyps', [])
     if not isinstance(polyps, list):
         return stats
     
@@ -163,10 +163,15 @@ def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from 
         if not isinstance(size, (int, float)):
             size = 0
         dysplasia = polyp.get('dysplasia')
-        if polyp.get('resection') == 'complete':
-            stats['incomplete_resection'] = False #default value is True (incomplete resection) set above
-        if polyp.get('retrieval') == 'complete':
-            stats['incomplete_retrieval'] = False #default value is True (incomplete retrieval) set above
+
+        #changed the default values above from True to False to fix a logic error
+        #previously, no polyps left these as true flagging a rule for human review
+        #now a single incomplete polyp resection will flag these as True triggering a human review
+        #kind of a tradeoff from a safer default but logic works better this way
+        if polyp.get('resection') != 'complete':
+            stats['incomplete_resection'] = True #default value is False (incomplete resection) set above
+        if polyp.get('retrieval') != 'complete':
+            stats['incomplete_retrieval'] = True #default value is False (incomplete retrieval) set above
 
 
 
@@ -316,7 +321,9 @@ def triage(data: dict):
     ###Add discharge criteria here?
 
     #if no polyps and family history category 1 or 2
-    if not data['polyps'] and data['indication'] in ['family_history_category_1', 'family_history_category_2']:
+    #this rule as written is unreachable right now.  will have to figure out the proper logic
+    #as validation data comes in to see where to best put this rule
+    if data['total_polyps'] == 0 and data['indication'] in ['family_history_category_1', 'family_history_category_2']:
         return {'follow_up': 20, 'rule': 'rule_23', 'reason': 'Discharged due to no polyps and family history category 1 or 2'}
     
 
@@ -388,17 +395,22 @@ def write_triage_record(db: Session, raw_report, normalized_data, recommendation
         )
 
         db.add(triage_row)
+        db.flush()
 
+        triage_id = triage_row.triage_id
+        
+
+    return triage_id
 
 async def process_triage(report: str, db: Session): #integrates the entire workflow from intake of report to writing to database
     result = await final_triage(report)
 
-    write_triage_record(db = db,
+    triage_id = write_triage_record(db = db,
                         raw_report = report,
                         normalized_data = result['normalized_data'],
                         recommendation = result['recommendation'])
 
-    return result
+    return result, triage_id
 
 ###for development
 async def main():

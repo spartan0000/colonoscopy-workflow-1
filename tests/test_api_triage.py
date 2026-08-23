@@ -28,7 +28,7 @@ def test_full_pipeline(client, db_session):
 
     data = response.json()
 
-    assert 'recommendation' in data
+    assert 'recommendation' in data['final_result']
 
     triage_row = db_session.query(SampleTriage).first()
 
@@ -74,4 +74,4 @@ def test_triage_response(client):
         print(response.status_code)
         print(response.json())
         assert response.status_code == 200
-        assert response.json()['recommendation'] == "some age out result"
+        assert response.json()['final_result']['recommendation'] == "some age out result"
