@@ -22,7 +22,7 @@ from app.db.models.case import SamplePatient, SampleProcedure, SampleTriage
 load_dotenv()
 
 BASE_PATH = Path(__file__).parent.parent
-PROMPT_PATH = BASE_PATH / 'services' / 'parsing' / 'triage'
+PROMPT_PATH = BASE_PATH / 'services' / 'triage'
 DATA_PATH = ""
    
 def load_prompt(prompt_file:str) -> str:
