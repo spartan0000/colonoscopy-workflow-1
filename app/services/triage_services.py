@@ -128,6 +128,7 @@ rules_dict = {
 #helper function to get polyp data from the JSON output before going into the rules engine
 
 def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from LLM and normalizes it so that the triage function doesn't have to pull values
+    print(colonoscopy_entry.get('biopsies'))
     stats = {
         'n_adenoma': 0,
         'max_adenoma': 0,
@@ -144,6 +145,7 @@ def extract_polyp_data(colonoscopy_entry: dict) -> dict: #takes the output from 
         
 
     }
+
 
     if not isinstance(colonoscopy_entry,dict):
         return stats
@@ -219,6 +221,7 @@ def normalize_data(data: dict) -> dict: #normalize the data in the JSON output t
     }
 
     
+
     return normalized_data
  
 def triage(data: dict):
