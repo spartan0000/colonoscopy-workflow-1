@@ -61,10 +61,13 @@ class BostonBowelPrepScore(BaseModel):
 class Colonoscopy(BaseModel):
     procedure_date: date | None  # YYYY-MM-DD format
     number_of_polyps: Annotated[int, Field(ge=0)]
-    cecum_reached: Literal["yes", "no"]
+    cecum_reached: Literal["yes", "no"] = Field(default="no")
     bostonBowelPrepScore: BostonBowelPrepScore
     polyps: List[Polyp]
-    biopsies: List[Biopsy]
+    biopsies: List[Biopsy] = Field(
+        default_factory=list,
+        description="List of biopsies taken during the procedure.  Return an empty list if no biopsies taken"
+    )
 
 class ColonoscopySummary(BaseModel):
     patient_name: str

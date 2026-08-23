@@ -114,9 +114,10 @@ prompt:
     Colonoscopy details:
       - procedure_date: YYYY-MM-DD
       - number_of_polyps
-      - cecum_reached: yes/no
+      - cecum_reached: yes/no - if this is not explicitly stated, default to no
       - bostonBowelPrepScore: total 0-9, right 0-3, transverse 0-3, left 0-3
       - polyps: location, size (mm), type, dysplasia, resection, retrieval
+      - biopsies: if no biopsies were taken, return an empty list.  
 
     Output:
       - Produce JSON parsable according to the Pydantic model

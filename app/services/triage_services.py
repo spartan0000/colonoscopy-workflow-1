@@ -381,7 +381,9 @@ def triage_with_age_out(normalized_data, outcome):
 async def final_triage(report):
     
     json_data = await format_query_json(report)
+    print(json_data)
     normalized_data = normalize_data(json_data)
+    print(normalized_data)
     recommendation = triage(normalized_data)
     final = triage_with_age_out(normalized_data, recommendation)
     return {'normalized_data': normalized_data, 
